@@ -14,6 +14,12 @@ DESCRIBE payments;
 
 DESCRIBE reviews;
 
+SHOW TABLES;
+
+DESCRIBE product_category_name_translation;
+
+ALTER TABLE product_category_name_translation
+MODIFY product_category_name VARCHAR(50);
 -- Row counts for all tables
 SELECT 'orders' AS table_name, COUNT(*) AS row_count
 FROM orders
@@ -65,41 +71,34 @@ SELECT
     ) AS null_customer_id
 FROM orders;
 
-ALTER TABLE orders MODIFY customer_id VARCHAR(50);
-
-ALTER TABLE orders MODIFY order_status VARCHAR(50);
-
-ALTER TABLE orders MODIFY order_purchase_timestamp DATETIME;
 -- Index on orders table (most used in JOINs)
-ALTER TABLE orders ADD INDEX idx_order_customer (customer_id);
+ALTER TABLE orders ADD INDEX idx_orders_customer (customer_id);
 
-ALTER TABLE orders ADD INDEX idx_order_status (order_status);
+ALTER TABLE orders ADD INDEX idx_orders_status (order_status);
 
 ALTER TABLE orders
-ADD INDEX idx_order_purchase (order_purchase_timestamp);
+ADD INDEX idx_orders_purchase (order_purchase_timestamp);
 
-ALTER TABLE order_items MODIFY order_id VARCHAR(50);
-
-ALTER TABLE order_items MODIFY product_id VARCHAR(50);
-
-ALTER TABLE order_items MODIFY seller_id VARCHAR(50);
-
+-- Index on order_items (used in every revenue query)
 ALTER TABLE order_items ADD INDEX idx_items_order (order_id);
 
 ALTER TABLE order_items ADD INDEX idx_items_product (product_id);
 
 ALTER TABLE order_items ADD INDEX idx_items_seller (seller_id);
 
-ALTER TABLE customers MODIFY customer_unique_id VARCHAR(50);
+-- Index on payments
+ALTER TABLE payments ADD INDEX idx_payments_order (order_id);
 
-ALTER TABLE customers MODIFY customer_state VARCHAR(50);
+-- Index on reviews
+ALTER TABLE reviews ADD INDEX idx_reviews_order (order_id);
 
+-- Index on customers
 ALTER TABLE customers
-ADD INDEX idx_customer_unique (customer_unique_id);
+ADD INDEX idx_customers_unique (customer_unique_id);
 
-ALTER TABLE customers ADD INDEX idx_customer_state (customer_state);
+ALTER TABLE customers ADD INDEX idx_customers_state (customer_state);
 
--- Adding delivery_delay column (positive = late, negative = early)
+-- Add delivery_delay column (positive = late, negative = early)
 ALTER TABLE orders ADD COLUMN delivery_delay_days INT;
 
 UPDATE orders
@@ -112,7 +111,7 @@ WHERE
     order_delivered_customer_date IS NOT NULL
     AND order_estimated_delivery_date IS NOT NULL;
 
--- Extract year and month for analysis
+-- Add order_month column (format: YYYY-MM) for cohort grouping
 ALTER TABLE orders ADD COLUMN order_month VARCHAR(7);
 
 UPDATE orders
@@ -124,16 +123,19 @@ SET
 WHERE
     order_purchase_timestamp IS NOT NULL;
 
-ALTER TABLE orders MODIFY order_delivered_customer_date DATETIME;
-
-ALTER TABLE orders MODIFY order_estimated_delivery_date DATETIME;
-
+-- Verify the new columns
 SELECT
     order_id,
     order_purchase_timestamp,
+    order_month,
     order_delivered_customer_date,
     order_estimated_delivery_date,
-    delivery_delay_days,
-    order_status order_month
+    delivery_delay_days
 FROM orders
 LIMIT 10;
+
+ALTER TABLE product_category_name_translation
+MODIFY product_category_name VARCHAR(50);
+
+ALTER TABLE product_category_name_translation
+ADD INDEX idx_product_category (product_category_name);

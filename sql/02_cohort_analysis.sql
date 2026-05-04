@@ -1,5 +1,3 @@
--- Active: 1777618980585@@127.0.0.1@3306
--- Active: 1777618980585@@127.0.0.1@3306
 --Monthly Cohort Retention — Customer Loyalty Trends
 
 --Cohort analysis tracks groups of customers who made their first purchase in the same month.
