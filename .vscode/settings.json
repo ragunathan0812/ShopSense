@@ -14,5 +14,7 @@
             "database": "shopsense",
             "username": "root"
         }
-    ]
+    ],
+    "editor.codeActionWidget.includeNearbyQuickFixes": false,
+    "editor.quickSuggestionsDelay": 50
 }
