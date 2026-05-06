@@ -1,4 +1,18 @@
+-- ══════════════════════════════════════════════════════════════════════════════
+-- FILE: 01_schema_setup.sql
+-- PURPOSE: Initialize ShopSense database with indexes, computed columns, and
+--          data validation to prepare for analytical queries
+-- KEY OUTPUTS: Optimized table indexes, delivery_delay_days column, order_month
+-- RUNTIME: ~15 seconds for all operations
+-- NOTES: Run this FIRST before executing other SQL files
+-- ══════════════════════════════════════════════════════════════════════════════
+
 USE shopsense;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- SECTION 1: DATABASE SETUP & TABLE INSPECTION
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Verify database structure and identify key columns for optimization
 
 DESCRIBE orders;
 
@@ -20,6 +34,12 @@ DESCRIBE product_category_name_translation;
 
 ALTER TABLE product_category_name_translation
 MODIFY product_category_name VARCHAR(50);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- SECTION 2: DATA VALIDATION & QUALITY CHECKS
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Verify data completeness and identify potential data quality issues
+
 -- Row counts for all tables
 SELECT 'orders' AS table_name, COUNT(*) AS row_count
 FROM orders
@@ -42,7 +62,8 @@ UNION ALL
 SELECT 'reviews' AS table_name, COUNT(*) AS row_count
 FROM reviews;
 
--- Checking for nulls in key orders columns
+-- Check for null values in critical order fields
+-- (Nulls indicate data quality issues that could skew analysis results)
 SELECT
     COUNT(*) AS total_orders,
     SUM(
@@ -70,7 +91,13 @@ SELECT
         END
     ) AS null_customer_id
 FROM orders;
+──────────────────────────────────────────────────────────────────────────────
+-- SECTION 3: CREATE DATABASE INDEXES FOR QUERY PERFORMANCE
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Indexes speed up JOIN operations and WHERE clause filtering
+-- Strategy: Index on foreign keys (used in JOINs) and frequently filtered columns
 
+-- 
 -- Index on orders table (most used in JOINs)
 ALTER TABLE orders ADD INDEX idx_orders_customer (customer_id);
 
@@ -91,6 +118,11 @@ ALTER TABLE payments ADD INDEX idx_payments_order (order_id);
 
 -- Index on reviews
 ALTER TABLE reviews ADD INDEX idx_reviews_order (order_id);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- SECTION 4: ADD COMPUTED COLUMNS FOR ANALYTICAL QUERIES
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Pre-calculated columns reduce query complexity and improve performance
 
 -- Index on customers
 ALTER TABLE customers
@@ -118,7 +150,12 @@ UPDATE orders
 SET
     order_month = DATE_FORMAT(
         order_purchase_timestamp,
-        '%Y-%m'
+   ──────────────────────────────────────────────────────────────────────────────
+-- SECTION 5: FINAL VALIDATION & VERIFICATION
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Verify all computed columns were created successfully
+
+--      '%Y-%m'
     )
 WHERE
     order_purchase_timestamp IS NOT NULL;
@@ -134,6 +171,16 @@ SELECT
 FROM orders
 LIMIT 10;
 
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- EXECUTION NOTES
+-- ══════════════════════════════════════════════════════════════════════════════
+-- 1. This script should be run FIRST in the analysis pipeline
+-- 2. Expected runtime: ~15 seconds (indexes creation is fast)
+-- 3. All subsequent SQL queries depend on these indexes for performance
+-- 4. If re-running: MySQL will skip indexes that already exist
+-- 5. Verify success: Check that delivery_delay_days and order_month have values
+-- ══════════════════════════════════════════════════════════════════════════════
 ALTER TABLE product_category_name_translation
 MODIFY product_category_name VARCHAR(50);
 
